@@ -1,0 +1,201 @@
+<?php
+class News
+{
+	
+	var $user_id;
+	var $user;
+	var $type;
+	var $password;
+	var $db;
+	var $validity;
+	var $Form;
+	var $new_pass;
+	var $confirm_pass;
+	var $auth;
+	
+	
+	function __construct(){
+		$this->db = new database(DATABASE_HOST,DATABASE_PORT,DATABASE_USER,DATABASE_PASSWORD,DATABASE_NAME);
+		$this->validity = new ClsJSFormValidation();
+		$this->Form = new ValidateForm();
+		$this->auth=new Authentication();
+	}
+	
+	
+	
+	
+	function addNews($runat)
+	{
+		
+		switch($runat){
+			case 'local':
+			$FormName = "frm_banners";
+			$ControlNames=array("news"=>array('heading',"''","Please enter heading","span_news") );
+
+			$ValidationFunctionName="CheckbannersValidity";
+			
+			$JsCodeForFormValidation=$this->validity->ShowJSFormValidationCode($FormName,$ControlNames,$ValidationFunctionName,$SameFields,$ErrorMsgForSameFields);
+			echo $JsCodeForFormValidation;
+			?>
+			<div class="mws-panel grid_8">
+				<div class="mws-panel-header">
+					<span><a href="shownews.php"/><button type="button" style="margin-left:25px;"class="btn btn-success"><i class="icon-cyclop"></i>View All News & Annoucement</button></a></span>
+				</div>
+			</div>
+			<div class="mws-panel grid_8">
+				<div class="mws-panel-header">
+					<span>Add New News</span>
+				</div>
+				<div class="mws-panel-body no-padding">
+					<form method="post" action="" enctype="multipart/form-data" name="<?php echo $FormName;?>" class="mws-form" >
+						<div class="mws-form-inline">
+							
+							
+							<div class="mws-form-row">
+								<label class="mws-form-label">Enter News</label>
+								<div class="mws-form-item">
+									<input type="text" class="large" title="news" rel="tooltip" data-placement="bottom" name="news">
+									<span style="color:#F00;" id="span_news"></span>
+								</div>
+							</div>
+						</div>
+						<div class="mws-button-row">
+							<input type="submit" value="Submit" name="submit" class="btn btn-danger" onclick="return <?php echo $ValidationFunctionName?>();">
+							<input type="reset" value="Reset" class="btn ">
+						</div>
+					</form>
+				</div>    	
+			</div>
+			<?php 
+			
+			break;
+			case 'server':
+			extract($_POST);
+			
+			$this->news=$news;
+			
+							//server side validation
+			$return =true;
+			
+			if($this->Form->ValidField($news,'empty','Please Enter News')==false)
+				$return =false;
+			if($return){
+				
+				
+				$insert_sql_array = array();
+				
+				$insert_sql_array['news'] = $this->news;
+				
+				$this->db->insert(TBL_ANNOUNCE,$insert_sql_array);
+				
+				$_SESSION['msg'] = 'Page has been Successfully Added';
+				
+				?>
+				<script type="text/javascript">
+					window.location = "shownews.php"
+				</script>
+				<?php
+				exit();
+				
+			} else {
+				echo $this->Form->ErrtxtPrefix.$this->Form->ErrorString.$this->Form->ErrtxtSufix; 
+				$this->addMenu('local');
+			}
+			break;
+			default 	: 
+			echo "Wrong Parameter passed";
+		}
+		
+		
+	}
+	
+	function showNews($runat)
+	{
+		
+		?>
+		<div class="mws-panel grid_8">
+			<div class="mws-panel-header">
+				<span><a href="addnews.php"/><button type="button" style="margin-left:25px;"class="btn btn-success"><i class="icon-cyclop"></i>Add News & Annoucement</button></a></span>
+			</div>
+		</div>
+		
+		<div class="mws-panel grid_8">
+			<div class="mws-panel-header">
+				<span><i class="icon-table"></i>All News </span>
+			</div>
+			<div class="mws-panel-body no-padding">
+				<table class="mws-datatable-fn mws-table">
+					<thead>
+						<tr>
+							<th width="2%">S.No.</th>
+							<th width="50%">News</th>
+							<th>Action</th>
+							
+						</tr>
+					</thead>
+					<tbody>
+						
+						<?php 
+						
+						$sql="select * from ".TBL_ANNOUNCE;
+						$result= $this->db->query($sql,__FILE__,__LINE__);
+						$x=1;
+						while($row = $this->db->fetch_array($result))
+						{
+							?>
+							<tr>
+								<td><?php echo $x;?></td>
+								<td><?php echo $row['news'];?></td>
+								
+								<td> 
+									
+									<a  title="Delete News" href="javascript : void(0);" onclick="javascript: if(confirm('Do u want to delete this News ?')) { objmenu.deleteNews('<?php echo $row['id'];?>',{}) }; return false;" rel="tooltip" data-placement="top"><i class="icol-application-delete"></i></a>
+								</td>
+								
+							</tr>
+							<?php 
+							$x++;
+						}
+						?>
+						
+					</tbody>
+				</table>
+			</div>
+		</div>
+		
+		
+		
+		<?php 
+		
+		
+		
+	}
+	
+	
+	function deleteNews($id)
+	{
+		ob_start();
+		
+		$sql="delete from ".TBL_ANNOUNCE." where id='".$id."'";
+		$this->db->query($sql,__FILE__,__LINE__);
+		
+		
+		$_SESSION['msg']='News has been Deleted successfully';
+		
+		?>
+		<script type="text/javascript">
+			location.reload(true);
+		</script>
+		<?php
+		
+		$html = ob_get_contents();
+		ob_end_clean();
+		return $html;
+	}
+	
+	
+	
+}
+
+
+?>
